@@ -1,16 +1,58 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Image, ScrollView } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
-import { useLocalSearchParams, router } from 'expo-router';
+import { Text, IconButton, Button, Modal, Portal, TextInput } from 'react-native-paper';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { getPartById, Part } from '../../repositories/partsRepository';
+import { recordSale } from '../../repositories/salesRepository';
 
 export default function PartDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [part, setPart] = useState<Part | null>(null);
+  const [saleModalVisible, setSaleModalVisible] = useState(false);
+  const [saleQty, setSaleQty] = useState('');
+  const [salePrice, setSalePrice] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (id) getPartById(id).then(setPart);
+  const loadPart = useCallback(async () => {
+    if (id) {
+      const data = await getPartById(id);
+      setPart(data);
+      if (data) setSalePrice(String(data.price));
+    }
   }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPart();
+    }, [loadPart])
+  );
+
+  const openSaleModal = () => {
+    setSaleQty('');
+    setSaleModalVisible(true);
+  };
+
+  const handleRecordSale = async () => {
+    if (!part) return;
+    const qty = parseInt(saleQty, 10);
+    const price = parseFloat(salePrice);
+
+    if (!qty || qty <= 0) {
+      alert('Enter a valid quantity.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await recordSale({ partId: part.id, quantitySold: qty, salePrice: price || 0 });
+      setSaleModalVisible(false);
+      await loadPart();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!part) {
     return (
@@ -49,8 +91,49 @@ export default function PartDetailScreen() {
           </View>
         </View>
 
+        <Button
+          mode="contained"
+          onPress={openSaleModal}
+          disabled={part.quantity === 0}
+          style={styles.sellButton}
+        >
+          {part.quantity === 0 ? 'Out of stock' : 'Record sale'}
+        </Button>
+
         <Text style={styles.addedDate}>Added {new Date(part.created_at).toLocaleDateString()}</Text>
       </View>
+
+      <Portal>
+        <Modal
+          visible={saleModalVisible}
+          onDismiss={() => setSaleModalVisible(false)}
+          contentContainerStyle={styles.modal}
+        >
+          <Text style={styles.modalTitle}>Record sale</Text>
+          <Text style={styles.modalSubtitle}>{part.quantity} in stock</Text>
+
+          <TextInput
+            label="Quantity sold"
+            value={saleQty}
+            onChangeText={setSaleQty}
+            mode="outlined"
+            keyboardType="number-pad"
+            style={styles.modalInput}
+          />
+          <TextInput
+            label="Sale price per unit (ZMW)"
+            value={salePrice}
+            onChangeText={setSalePrice}
+            mode="outlined"
+            keyboardType="decimal-pad"
+            style={styles.modalInput}
+          />
+
+          <Button mode="contained" onPress={handleRecordSale} loading={saving} disabled={saving}>
+            Confirm sale
+          </Button>
+        </Modal>
+      </Portal>
     </ScrollView>
   );
 }
@@ -68,5 +151,10 @@ const styles = StyleSheet.create({
   statBox: { flex: 1, backgroundColor: '#F1EFE8', borderRadius: 10, padding: 14 },
   statLabel: { fontSize: 12, color: '#666' },
   statValue: { fontSize: 20, fontWeight: '500', marginTop: 4 },
+  sellButton: { marginBottom: 16 },
   addedDate: { fontSize: 12, color: '#999' },
+  modal: { backgroundColor: '#fff', margin: 24, padding: 20, borderRadius: 12 },
+  modalTitle: { fontSize: 16, fontWeight: '500' },
+  modalSubtitle: { fontSize: 12, color: '#666', marginBottom: 16 },
+  modalInput: { marginBottom: 12 },
 });

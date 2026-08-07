@@ -1,24 +1,55 @@
-import { useState } from 'react';
-import { View, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, TextInput, Button } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { router } from 'expo-router';
-import { createPart } from '../../repositories/partsRepository';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system";
+import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
+import { useState } from "react";
+import {
+    Image,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { Button, Text, TextInput } from "react-native-paper";
+import { createPart } from "../../repositories/partsRepository";
 
 export default function AddPartScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [carModel, setCarModel] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [price, setPrice] = useState('');
+  const [name, setName] = useState("");
+  const [carModel, setCarModel] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [price, setPrice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [touchedName, setTouchedName] = useState(false);
+  const [touchedCarModel, setTouchedCarModel] = useState(false);
+  const [touchedQuantity, setTouchedQuantity] = useState(false);
+  const [touchedPrice, setTouchedPrice] = useState(false);
+
+  const quantityValue = parseInt(quantity, 10);
+  const priceValue = parseFloat(price);
+
+  const nameValid = name.trim().length > 0;
+  const carModelValid = carModel.trim().length > 0;
+  const quantityValid = Number.isInteger(quantityValue) && quantityValue > 0;
+  const priceValid =
+    !Number.isNaN(priceValue) && priceValue >= 0 && price.trim().length > 0;
+
+  const nameError = touchedName && !nameValid ? "Part name is required." : "";
+  const carModelError =
+    touchedCarModel && !carModelValid ? "Car model is required." : "";
+  const quantityError =
+    touchedQuantity && !quantityValid
+      ? "Enter a valid quantity greater than 0."
+      : "";
+  const priceError = touchedPrice && !priceValid ? "Enter a valid price." : "";
+
+  const canSave =
+    nameValid && carModelValid && quantityValid && priceValid && !saving;
 
   const takePhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      alert('Camera access is needed to photograph the part.');
+      alert("Camera access is needed to photograph the part.");
       return;
     }
 
@@ -30,7 +61,7 @@ export default function AddPartScreen() {
     if (result.canceled) return;
 
     const cacheUri = result.assets[0].uri;
-    const filename = cacheUri.split('/').pop();
+    const filename = cacheUri.split("/").pop();
     const dir = `${FileSystem.documentDirectory}parts/`;
     await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
     const permanentUri = `${dir}${filename}`;
@@ -41,7 +72,7 @@ export default function AddPartScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      alert('Give the part a name first.');
+      alert("Give the part a name first.");
       return;
     }
     setSaving(true);
@@ -55,12 +86,12 @@ export default function AddPartScreen() {
       });
 
       setPhotoUri(null);
-      setName('');
-      setCarModel('');
-      setQuantity('');
-      setPrice('');
+      setName("");
+      setCarModel("");
+      setQuantity("");
+      setPrice("");
 
-      router.push('/(tabs)/stock');
+      router.push("/(tabs)/stock");
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -70,7 +101,9 @@ export default function AddPartScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text variant="headlineSmall" style={styles.title}>Add part</Text>
+      <Text variant="headlineSmall" style={styles.title}>
+        Add part
+      </Text>
 
       <TouchableOpacity style={styles.photoBox} onPress={takePhoto}>
         {photoUri ? (
@@ -83,15 +116,72 @@ export default function AddPartScreen() {
         )}
       </TouchableOpacity>
 
-      <TextInput label="Part name" value={name} onChangeText={setName} mode="outlined" placeholder="e.g. Brake pad set" style={styles.input} />
-      <TextInput label="Car make and model" value={carModel} onChangeText={setCarModel} mode="outlined" placeholder="e.g. Toyota Corolla 2014" style={styles.input} />
+      <TextInput
+        label="Part name"
+        value={name}
+        onChangeText={setName}
+        onBlur={() => setTouchedName(true)}
+        mode="outlined"
+        placeholder="e.g. Brake pad set"
+        style={styles.input}
+        error={!!nameError}
+      />
+      {nameError ? <Text style={styles.errorText}>{nameError}</Text> : null}
+
+      <TextInput
+        label="Car make and model"
+        value={carModel}
+        onChangeText={setCarModel}
+        onBlur={() => setTouchedCarModel(true)}
+        mode="outlined"
+        placeholder="e.g. Toyota Corolla 2014"
+        style={styles.input}
+        error={!!carModelError}
+      />
+      {carModelError ? (
+        <Text style={styles.errorText}>{carModelError}</Text>
+      ) : null}
 
       <View style={styles.row}>
-        <TextInput label="Quantity" value={quantity} onChangeText={setQuantity} mode="outlined" keyboardType="number-pad" style={[styles.input, styles.halfInput]} />
-        <TextInput label="Price (ZMW)" value={price} onChangeText={setPrice} mode="outlined" keyboardType="decimal-pad" style={[styles.input, styles.halfInput]} />
+        <View style={styles.halfInputWrapper}>
+          <TextInput
+            label="Quantity"
+            value={quantity}
+            onChangeText={setQuantity}
+            onBlur={() => setTouchedQuantity(true)}
+            mode="outlined"
+            keyboardType="number-pad"
+            style={styles.input}
+            error={!!quantityError}
+          />
+          {quantityError ? (
+            <Text style={styles.errorText}>{quantityError}</Text>
+          ) : null}
+        </View>
+        <View style={styles.halfInputWrapper}>
+          <TextInput
+            label="Price (ZMW)"
+            value={price}
+            onChangeText={setPrice}
+            onBlur={() => setTouchedPrice(true)}
+            mode="outlined"
+            keyboardType="decimal-pad"
+            style={styles.input}
+            error={!!priceError}
+          />
+          {priceError ? (
+            <Text style={styles.errorText}>{priceError}</Text>
+          ) : null}
+        </View>
       </View>
 
-      <Button mode="contained" onPress={handleSave} loading={saving} disabled={saving} style={styles.button}>
+      <Button
+        mode="contained"
+        onPress={handleSave}
+        loading={saving}
+        disabled={!canSave}
+        style={styles.button}
+      >
         Save to stock
       </Button>
     </ScrollView>
@@ -100,15 +190,28 @@ export default function AddPartScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, paddingTop: 40 },
-  title: { fontWeight: '500', marginBottom: 20 },
+  title: { fontWeight: "500", marginBottom: 20 },
   photoBox: {
-    height: 160, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: '#999',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16, overflow: 'hidden',
+    height: 160,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#999",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    overflow: "hidden",
   },
-  photo: { width: '100%', height: '100%' },
-  photoText: { marginTop: 6, color: '#666', fontSize: 12 },
+  photo: { width: "100%", height: "100%" },
+  photoText: { marginTop: 6, color: "#666", fontSize: 12 },
   input: { marginBottom: 12 },
-  row: { flexDirection: 'row', gap: 10 },
-  halfInput: { flex: 1 },
+  row: { flexDirection: "row", gap: 10 },
+  halfInputWrapper: { flex: 1 },
   button: { marginTop: 8, paddingVertical: 4 },
+  errorText: {
+    color: "#B00020",
+    marginTop: -8,
+    marginBottom: 10,
+    fontSize: 12,
+  },
 });

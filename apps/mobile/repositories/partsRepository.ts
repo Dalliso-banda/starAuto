@@ -1,5 +1,5 @@
-import * as Crypto from 'expo-crypto';
-import { db } from '../db/database';
+import * as Crypto from "expo-crypto";
+import { db } from "../db/database";
 
 export type Part = {
   id: string;
@@ -21,8 +21,15 @@ export async function createPart(input: {
   const id = Crypto.randomUUID();
 
   await db.runAsync(
-    'INSERT INTO parts (id, name, car_make_model, photo_uri, quantity, price) VALUES (?, ?, ?, ?, ?, ?)',
-    [id, input.name, input.carModel, input.photoUri, input.quantity, input.price]
+    "INSERT INTO parts (id, name, car_make_model, photo_uri, quantity, price) VALUES (?, ?, ?, ?, ?, ?)",
+    [
+      id,
+      input.name,
+      input.carModel,
+      input.photoUri,
+      input.quantity,
+      input.price,
+    ],
   );
 
   return {
@@ -37,10 +44,19 @@ export async function createPart(input: {
 }
 
 export async function getAllParts(): Promise<Part[]> {
-  return db.getAllAsync<Part>('SELECT * FROM parts ORDER BY created_at DESC');
+  return db.getAllAsync<Part>("SELECT * FROM parts ORDER BY created_at DESC");
 }
 
 export async function getPartById(id: string): Promise<Part | null> {
-  const row = await db.getFirstAsync<Part>('SELECT * FROM parts WHERE id = ?', [id]);
+  const row = await db.getFirstAsync<Part>("SELECT * FROM parts WHERE id = ?", [
+    id,
+  ]);
   return row ?? null;
+}
+export async function searchParts(query: string): Promise<Part[]> {
+  const likeQuery = `%${query.toLowerCase()}%`;
+  return db.getAllAsync<Part>(
+    "SELECT * FROM parts WHERE LOWER(name) LIKE ? OR LOWER(COALESCE(car_make_model, '')) LIKE ? ORDER BY created_at DESC",
+    [likeQuery, likeQuery],
+  );
 }
