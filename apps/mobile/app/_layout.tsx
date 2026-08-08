@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
-import { Stack } from 'expo-router';
-import { PaperProvider } from 'react-native-paper';
-import { theme } from '../theme';
-import { initSchema } from '../db/schema';
-import { AuthProvider } from '../context/AuthContext';
+import { Stack } from "expo-router";
+import { useEffect } from "react";
+import { PaperProvider } from "react-native-paper";
+import { AuthProvider } from "../context/AuthContext";
+import { initSchema } from "../db/schema";
+import { theme } from "../theme";
 
 export default function RootLayout() {
   useEffect(() => {
@@ -19,6 +19,7 @@ export default function RootLayout() {
           <Stack.Screen name="signup" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="part/[id]" />
+          <Stack.Screen name="sales" />
         </Stack>
       </AuthProvider>
     </PaperProvider>

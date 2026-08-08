@@ -3,6 +3,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Dimensions,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -18,7 +19,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { getAllParts, Part } from "../../repositories/partsRepository";
-import { getSales, Sale } from "../../repositories/salesRepository";
+import { getAllSales, Sale } from "../../repositories/salesRepository";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2; // Perfectly spaces a 2-column grid with margins
@@ -43,7 +44,7 @@ export default function DashboardScreen() {
   const loadData = useCallback(async () => {
     const [partsData, salesData] = await Promise.all([
       getAllParts(),
-      getSales(),
+      getAllSales(),
     ]);
     setParts(partsData);
     setSales(salesData);
@@ -190,25 +191,20 @@ export default function DashboardScreen() {
           </Text>
         </Surface>
 
-        <Surface
-          style={[styles.surfaceCard, { width: CARD_WIDTH }]}
-          elevation={1}
-        >
-          <MaterialCommunityIcons
-            name="cash-multiple"
-            size={26}
-            color="#FF9800"
-          />
-          <Text
-            variant="headlineMedium"
-            style={stats.salesToday > 0 ? { color: "#FF9800" } : null}
+        <Pressable onPress={() => router.push("/sales")}>
+          <Surface
+            style={[styles.surfaceCard, { width: CARD_WIDTH }]}
+            elevation={1}
           >
-            {stats.salesToday}
-          </Text>
-          <Text variant="labelMedium" style={styles.statLabel}>
-            Sales Today
-          </Text>
-        </Surface>
+            <MaterialCommunityIcons name="cart" size={26} color="#1976D2" />
+            <Text variant="headlineMedium" style={styles.statNum}>
+              {stats.salesToday}
+            </Text>
+            <Text variant="labelMedium" style={styles.statLabel}>
+              Sales Today
+            </Text>
+          </Surface>
+        </Pressable>
       </View>
 
       {/* ⚡ QUICK ACTIONS ACTION BAR */}
